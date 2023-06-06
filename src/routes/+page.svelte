@@ -1,59 +1,68 @@
-<script>
-	import Counter from './Counter.svelte';
-	import welcome from '$lib/images/svelte-welcome.webp';
-	import welcome_fallback from '$lib/images/svelte-welcome.png';
+<script lang="ts">
+  import { io } from '$lib/webSocketConnection.js';
+  import { onMount } from 'svelte';
+
+  let textfield = '';
+  let username = '';
+
+  let messages: Record<string, string>[] = [];
+
+  onMount(() => {
+    io.on('message', (message) => {
+      messages = [...messages, message];
+    });
+    io.on('name', (name) => {
+      username = name;
+    });
+  });
+
+  function sendMessage() {
+    const message = textfield.trim();
+    if (!message) return;
+
+    textfield = '';
+    io.emit('message', message);
+  }
 </script>
 
 <svelte:head>
-	<title>Home</title>
-	<meta name="description" content="Svelte demo app" />
+  <title>Home</title>
+  <meta name="description" content="Svelte demo app" />
 </svelte:head>
 
-<section>
-	<h1>
-		<span class="welcome">
-			<picture>
-				<source srcset={welcome} type="image/webp" />
-				<img src={welcome_fallback} alt="Welcome" />
-			</picture>
-		</span>
+<div class="h-screen w-screen bg-zinc-800">
+  <div class="mx-auto flex h-full w-full max-w-md flex-col bg-zinc-500">
+    <header
+      class="flex shrink-0 items-center justify-between border-b border-zinc-800 bg-zinc-700 px-6 py-4 text-white"
+    >
+      <span class="text-xl font-bold">My Chat app</span>
+      <span>{username}</span>
+    </header>
 
-		to your new<br />SvelteKit app
-	</h1>
+    <div class="h-full w-full p-4">
+      {#each messages as message}
+        <div class="my-4 w-fit rounded-xl rounded-tl-none bg-zinc-300 px-4 py-3">
+          <span class="space-between flex items-center gap-4">
+            <b>{message.from}</b>
+            <i>{message.time}</i>
+          </span>
+          {message.message}
+        </div>
+      {/each}
+    </div>
 
-	<h2>
-		try editing <strong>src/routes/+page.svelte</strong>
-	</h2>
-
-	<Counter />
-</section>
-
-<style>
-	section {
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		flex: 0.6;
-	}
-
-	h1 {
-		width: 100%;
-	}
-
-	.welcome {
-		display: block;
-		position: relative;
-		width: 100%;
-		height: 0;
-		padding: 0 0 calc(100% * 495 / 2048) 0;
-	}
-
-	.welcome img {
-		position: absolute;
-		width: 100%;
-		height: 100%;
-		top: 0;
-		display: block;
-	}
-</style>
+    <form
+      action="#"
+      on:submit|preventDefault={sendMessage}
+      class="flex shrink-0 items-center border-t border-zinc-800 bg-zinc-700 px-6 py-4 text-white"
+    >
+      <input
+        type="text"
+        bind:value={textfield}
+        placeholder="Type something..."
+        class="w-full border-none bg-transparent px-4 py-3"
+      />
+      <button type="submit" class="shrink-0 rounded-lg border border-white px-4 py-3">Send</button>
+    </form>
+  </div>
+</div>
